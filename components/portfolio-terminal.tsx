@@ -1,40 +1,128 @@
 'use client';
 
-import { KeyboardEvent, SyntheticEvent, useEffect, useRef, useState } from 'react';
-type Line = { command?: string; output: string; tone?: 'accent' | 'error' | 'muted' };
+import { KeyboardEvent, MouseEvent, SyntheticEvent, useEffect, useRef, useState } from 'react';
+import { GithubPanel } from './github-panel';
+type Line = { command?: string; output: string; tone?: 'accent' | 'error' | 'muted'; github?: boolean; detail?: string };
+type CliWindow = { id: number; x: number; y: number; command?: string; lines: Line[] };
+const COMMANDS = ['about', 'skills', 'work', 'contact', 'status', 'github', 'date', 'clear'];
 const responses: Record<string, string> = {
-  help: 'Commands: about · skills · work · contact · status · date · clear',
-  about: 'Nook is a full-stack developer building clear, resilient digital products from Bangkok.',
-  skills: 'typescript  react  next.js  node.js  postgres  docker  cloudflare',
-  work: '01 MarketFlow  /  02 Pulseboard  /  03 Orbit',
-  contact: 'hello@example.com  ·  github  ·  linkedin',
-  status: '● available for selected projects',
-  date: new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' }),
+  about: 'Early-career full-stack developer building clear, resilient digital products from Thailand — experienced in operations, data management, and market research.',
+  skills: 'JavaScript  React  Node.js  Express  PostgreSQL  SQL  MongoDB  Git',
+  work: '01 VinylVault  /  02 SteamRec  /  03 Uma Clicker',
+  contact: 'arin.nky@outlook.com  ·  061-491-7664  ·  Pathum Thani, Thailand\nlinkedin.com/in/arinchai-charoenrak-08370941a  ·  github.com/nookarin',
+  status: '● open to new opportunities',
 };
+const details: Record<string, string> = {
+  about: 'EDUCATION\n· Thammasat University (BEC Program) — Bachelor of Liberal Arts (2019–2023)\n· Harrisburg High School, Arkansas, US — Exchange Student (2017–2018)\n\nPROFESSIONAL DEVELOPMENT\n· Generation — Junior Software Developer Program (2026)\n  MERN-stack training: React, Node.js, Express, PostgreSQL, SQL, MongoDB, Git.',
+  skills: 'ADMINISTRATIVE & OPERATIONS\nAdministrative Support · Data Management · Spreadsheet Management · Document & Record Management · Business Operations · Team Coordination\n\nCUSTOMER & COMMUNICATION\nCustomer Service · Customer Support · Professional Communication · Inquiry Handling · Cross-Team Collaboration · Issue Escalation\n\nANALYSIS & COMPLIANCE\nContent Review & Moderation · Trend & Pattern Identification · Case Investigation · Policy Compliance · Data Privacy & Confidentiality · Attention to Detail\n\nTECHNICAL\nJavaScript · React.js · Node.js · Express.js · HTML5 · CSS3 · PostgreSQL · SQL · MongoDB · Git · GitHub · APIs · npm',
+  work: 'PROFESSIONAL EXPERIENCE\n· TDCX — Support Specialist (2025–2026)\n  Reviewed reported content, handled inquiries, investigated trends, escalated complex cases, and applied strict privacy & security standards.\n\n· Touch Innovative Research and Technology — Administrator (2024)\n  Managed documentation, coordination, customer data in spreadsheets, and marketing research.\n\n· Smartwise — Assistant Hotel Manager (2023)\n  Coordinated with the team and attended business meetings.\n\n· Thai-Star Food and Beverage — Intern (2022)\n  Coordinated with the team to finish workplace tasks.\n\nPROJECTS\n· VinylVault — Discogs-inspired music database & marketplace\n· SteamRec — Steam Web API app for library + recommendations\n· Uma Clicker — idle/clicker game',
+};
+const detailFor = (command: string) => details[command];
+const dateNow = () => new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
+const outputFor = (command: string) => (command === 'date' ? dateNow() : responses[command]);
+const toneFor = (command: string) => (command === 'status' ? 'accent' : undefined);
+const KNOWN = new Set(['date', 'github', ...Object.keys(responses)]);
+
+function ShowMore({ detail }: { detail: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="showmore">
+      <button type="button" className="showmore-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        {open ? 'show less ▾' : 'show more ▸'}
+      </button>
+      {open && <pre className="showmore-body">{detail}</pre>}
+    </div>
+  );
+}
+
+let nextId = 1;
 
 export function PortfolioTerminal() {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [lines, setLines] = useState<Line[]>([
-    { output: 'NOOK_OS [Version 1.0.26]', tone: 'muted' },
-    { output: 'Portfolio shell ready. Type “help” to begin.', tone: 'accent' },
-  ]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [lines, setLines] = useState<Line[]>([]);
+  const [windows, setWindows] = useState<CliWindow[]>([]);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [showPic, setShowPic] = useState(false);
+  const [resized, setResized] = useState(false);
+  const mainDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef<{ id: number; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   useEffect(() => { outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight, behavior: 'smooth' }); }, [lines]);
+
+  function mainDragStart(e: MouseEvent) {
+    e.preventDefault();
+    mainDragRef.current = { startX: e.clientX, startY: e.clientY, baseX: offset.x, baseY: offset.y };
+    window.addEventListener('mousemove', mainDragMove);
+    window.addEventListener('mouseup', mainDragEnd);
+  }
+  function mainDragMove(e: globalThis.MouseEvent) {
+    if (!mainDragRef.current) return;
+    const dx = e.clientX - mainDragRef.current.startX;
+    const dy = e.clientY - mainDragRef.current.startY;
+    setOffset({ x: mainDragRef.current.baseX + dx, y: mainDragRef.current.baseY + dy });
+  }
+  function mainDragEnd() {
+    mainDragRef.current = null;
+    window.removeEventListener('mousemove', mainDragMove);
+    window.removeEventListener('mouseup', mainDragEnd);
+  }
+
+  function openWindow(command: string, raw?: string) {
+    const d = detailFor(command);
+    const lines: Line[] = command === 'github'
+      ? [{ command: raw ?? command, output: '', github: true }]
+      : [{ command: raw ?? command, output: outputFor(command), tone: toneFor(command), detail: d }];
+    const id = nextId++;
+    const w = Math.min(460, window.innerWidth - 40);
+    setWindows((items) => [...items, {
+      id,
+      x: Math.min(Math.max(30, window.innerWidth / 2 - w / 2 + (items.length % 4) * 26), window.innerWidth - w - 20),
+      y: 70 + (items.length % 4) * 34,
+      command,
+      lines,
+    }]);
+  }
+  function closeWindow(id: number) { setWindows((items) => items.filter((w) => w.id !== id)); }
+  function dragWindowStart(e: MouseEvent, id: number, x: number, y: number) {
+    e.preventDefault();
+    dragRef.current = { id, startX: e.clientX, startY: e.clientY, baseX: x, baseY: y };
+    window.addEventListener('mousemove', dragWindowMove);
+    window.addEventListener('mouseup', dragWindowEnd);
+  }
+  function dragWindowMove(e: globalThis.MouseEvent) {
+    if (!dragRef.current) return;
+    const { id, startX, startY, baseX, baseY } = dragRef.current;
+    const x = baseX + (e.clientX - startX);
+    const y = baseY + (e.clientY - startY);
+    setWindows((items) => items.map((w) => (w.id === id ? { ...w, x, y } : w)));
+  }
+  function dragWindowEnd() {
+    dragRef.current = null;
+    window.removeEventListener('mousemove', dragWindowMove);
+    window.removeEventListener('mouseup', dragWindowEnd);
+  }
 
   function run(raw: string) {
     const command = raw.trim().toLowerCase().replace(/^\//, '');
     if (!command) return;
-    setHistory((items) => [...items, command]);
+    setInput('');
+    setHistory((items) => (items[items.length - 1] === command ? items : [...items, command]));
     setHistoryIndex(-1);
-    if (command === 'clear') return setLines([]);
-    setLines((items) => [...items, responses[command]
-      ? { command, output: responses[command], tone: command === 'status' ? 'accent' : undefined }
-      : { command, output: `command not found: ${command}. Try “help”.`, tone: 'error' }]);
+    if (command === 'clear') { setLines([]); return; }
+    if (!KNOWN.has(command)) {
+      setLines((items) => [...items, { command, output: `zsh: command not found: ${command}`, tone: 'error' }]);
+      return;
+    }
+    if (command === 'github') {
+      setLines((items) => [...items, { command, output: '', github: true }]);
+      return;
+    }
+    setLines((items) => [...items, { command, output: outputFor(command), tone: toneFor(command), detail: detailFor(command) }]);
   }
-  function submit(event: SyntheticEvent<HTMLFormElement>) { event.preventDefault(); run(input); setInput(''); }
+  function submit(event: SyntheticEvent<HTMLFormElement>) { event.preventDefault(); run(input); }
   function browseHistory(event: KeyboardEvent<HTMLInputElement>) {
     if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
     event.preventDefault();
@@ -43,15 +131,66 @@ export function PortfolioTerminal() {
     setInput(next < 0 ? '' : history[history.length - 1 - next]);
   }
 
-  return <section className="terminal-window" aria-label="Interactive portfolio terminal">
-    <header className="terminal-titlebar"><div className="window-controls" aria-hidden="true"><i /><i /><i /></div><span>nook@portfolio — zsh</span><span className="window-state" aria-hidden="true">⌘</span></header>
-    <div className="terminal-output" ref={outputRef} onClick={() => inputRef.current?.focus()}>
-      {lines.map((line, index) => <div className="terminal-line" key={`${line.command}-${index}`}>
-        {line.command && <p><span className="prompt">nook@dev</span><span className="path">:~$</span> {line.command}</p>}
-        <p className={line.tone ? `response ${line.tone}` : 'response'}>{line.output}</p>
-      </div>)}
-      <form onSubmit={submit} className="command-line"><label htmlFor="command"><span className="prompt">nook@dev</span><span className="path">:~$</span></label><input id="command" ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={browseHistory} autoFocus autoComplete="off" spellCheck={false} aria-label="Enter a terminal command" /><span className="block-cursor" aria-hidden="true" /></form>
-    </div>
-    <footer className="terminal-statusbar"><span>● ONLINE</span><span>UTF-8</span></footer>
-  </section>;
+  return <>
+    <section className={`terminal-window${resized ? ' resized' : ''}`} aria-label="Interactive portfolio terminal" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
+      <header className="terminal-titlebar" onMouseDown={mainDragStart}><button type="button" className="win-resize" aria-label="Toggle window size" onClick={(e) => { e.stopPropagation(); setResized((r) => !r); }} /><span>nook@portfolio — zsh</span><span className="window-state" aria-hidden="true">⌘</span></header>
+      <div className="terminal-output" ref={outputRef} onClick={() => inputRef.current?.focus()}>
+        <div className="intro-pic-bar">
+          <button type="button" className="pic-toggle" onClick={() => setShowPic((s) => !s)} aria-expanded={showPic}>{showPic ? 'Hide photo' : 'Show photo'}</button>
+        </div>
+        <div className={`intro${showPic ? ' with-pic' : ''}`}>
+          {showPic && <div className="intro-pic"><img src="/photo.jpg" alt="Arinchai Charoenrak" /></div>}
+          <div className="intro-info">
+            <h1>Arinchai Charoenrak</h1>
+            <p className="intro-title">Full-Stack Developer</p>
+            <ul>
+              <li><span>location</span> Pathum Thani, Thailand</li>
+              <li><span>stack</span> React · Node.js · Express · PostgreSQL</li>
+              <li><span>email</span> arin.nky@outlook.com</li>
+              <li><span>phone</span> 061-491-7664</li>
+            </ul>
+            <div className="connect-row">
+              <button type="button" className="connect-btn" onClick={() => window.open('https://github.com/nookarin', '_blank', 'noopener')}>GitHub ›</button>
+              <button type="button" className="connect-btn" onClick={() => window.open('https://www.linkedin.com/in/arinchai-charoenrak-08370941a', '_blank', 'noopener')}>LinkedIn ›</button>
+            </div>
+          </div>
+        </div>
+        <p className="response muted">Available commands — click to open:</p>
+        <div className="command-grid">
+          {COMMANDS.filter((c) => c !== 'clear').map((c) =>
+            <button key={c} type="button" className="command-chip" onClick={() => openWindow(c, c)}>{c}</button>)}
+        </div>
+        {lines.map((line, index) => <div className="terminal-line" key={`${line.command}-${index}`}>
+          {line.command && <p><span className="prompt">nook@dev</span><span className="path">:~$</span> {line.command}</p>}
+          {line.github
+            ? <GithubPanel />
+            : <div>{line.output && <p className={line.tone ? `response ${line.tone}` : 'response'}>{line.output}</p>}{line.detail && <ShowMore detail={line.detail} />}</div>}
+        </div>)}
+        <form onSubmit={submit} className="command-line">
+          <label htmlFor="command"><span className="prompt">nook@dev</span><span className="path">:~$</span></label>
+          <span className="cmd-host">
+            <span className="cmd-text">{input}</span><span className="block-cursor" aria-hidden="true" />
+            <input id="command" ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={browseHistory} autoFocus autoComplete="off" spellCheck={false} aria-label="Enter a terminal command" />
+          </span>
+        </form>
+      </div>
+      <footer className="terminal-statusbar"><span>● ONLINE</span><span>UTF-8</span></footer>
+    </section>
+    {windows.map((w) => <div key={w.id} className="cli-window" style={{ width: 'min(460px, calc(100vw - 40px))', left: w.x, top: w.y }}>
+      <header className="cli-titlebar" onMouseDown={(e) => dragWindowStart(e, w.id, w.x, w.y)}>
+        <span className="cli-title">{w.command ? `nook@portfolio: ~ — ${w.command}` : 'nook@portfolio: ~'}</span>
+        <button type="button" className="cli-close" aria-label="Close window" onClick={() => closeWindow(w.id)}>✕</button>
+      </header>
+      <div className="cli-body">
+        {w.lines.length === 0
+          ? <p className="response muted">cleared</p>
+          : w.lines.map((line, i) => <div className="cli-line" key={i}>
+              <p><span className="prompt">nook@dev</span><span className="path">:~$</span> {line.command}</p>
+              {line.github
+                ? <GithubPanel />
+                : <div>{line.output && <p className={line.tone ? `response ${line.tone}` : 'response'}>{line.output}</p>}{line.detail && <ShowMore detail={line.detail} />}</div>}
+            </div>)}
+      </div>
+    </div>)}
+  </>;
 }
