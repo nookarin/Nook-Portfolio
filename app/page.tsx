@@ -4,6 +4,13 @@ import { useRef, useState } from 'react';
 import { PortfolioTerminal } from '@/components/portfolio-terminal';
 
 const WALLPAPERS = ['bg1', 'bg2', 'bg3', 'bg4', 'bg5'];
+const ACCENTS: Record<string, string> = {
+  bg1: '#e07ab5',
+  bg2: '#6fa8ff',
+  bg3: '#b06bff',
+  bg4: '#2fd4c0',
+  bg5: '#ff6b9d',
+};
 
 export default function Home() {
   const [wallpaper, setWallpaper] = useState('bg1');
@@ -11,7 +18,7 @@ export default function Home() {
   const wpRef = useRef<HTMLDivElement>(null);
 
   return (
-    <main className="desktop" style={{ backgroundImage: `url("/${wallpaper}.jpg")` }}>
+    <main className="desktop" style={{ backgroundImage: `url("/${wallpaper}.jpg")`, ['--accent' as string]: ACCENTS[wallpaper] }}>
       <div className="wallpaper-grain" aria-hidden="true" />
       <PortfolioTerminal />
 
