@@ -3,7 +3,7 @@
 import { KeyboardEvent, MouseEvent, SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { GithubPanel } from './github-panel';
 type Line = { command?: string; output: string; tone?: 'accent' | 'error' | 'muted'; github?: boolean; detail?: string };
-type CliWindow = { id: number; x: number; y: number; command?: string; lines: Line[] };
+type CliWindow = { id: number; x: number; y: number; command?: string; lines: Line[]; input?: string };
 const COMMANDS = ['about', 'skills', 'work', 'contact', 'status', 'github', 'date', 'clear'];
 const responses: Record<string, string> = {
   about: 'Early-career full-stack developer building clear, resilient digital products from Thailand — experienced in operations, data management, and market research.',
@@ -51,6 +51,16 @@ export function PortfolioTerminal() {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ id: number; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   useEffect(() => { outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight, behavior: 'smooth' }); }, [lines]);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const cmd = (e as CustomEvent).detail;
+      if (cmd) {
+        openWindow(cmd, cmd);
+      }
+    };
+    window.addEventListener('terminal:open', handler);
+    return () => window.removeEventListener('terminal:open', handler);
+  }, []);
 
   function mainDragStart(e: MouseEvent) {
     e.preventDefault();
@@ -74,7 +84,9 @@ export function PortfolioTerminal() {
     const d = detailFor(command);
     const lines: Line[] = command === 'github'
       ? [{ command: raw ?? command, output: '', github: true }]
-      : [{ command: raw ?? command, output: outputFor(command), tone: toneFor(command), detail: d }];
+      : command === 'terminal'
+        ? []
+        : [{ command: raw ?? command, output: outputFor(command), tone: toneFor(command), detail: d }];
     const id = nextId++;
     const w = Math.min(460, window.innerWidth - 40);
     setWindows((items) => [...items, {
@@ -83,6 +95,7 @@ export function PortfolioTerminal() {
       y: 70 + (items.length % 4) * 34,
       command,
       lines,
+      input: command === 'terminal' ? '' : undefined,
     }]);
   }
   function closeWindow(id: number) { setWindows((items) => items.filter((w) => w.id !== id)); }
@@ -121,6 +134,20 @@ export function PortfolioTerminal() {
       return;
     }
     setLines((items) => [...items, { command, output: outputFor(command), tone: toneFor(command), detail: detailFor(command) }]);
+  }
+  function runInWindow(id: number, raw: string) {
+    const command = raw.trim().toLowerCase().replace(/^\//, '');
+    setWindows((items) => items.map((w) => {
+      if (w.id !== id) return { ...w, input: '' };
+      if (!command) return w;
+      if (command === 'clear') return { ...w, lines: [], input: '' };
+      const newLine: Line = KNOWN.has(command)
+        ? command === 'github'
+          ? { command, output: '', github: true }
+          : { command, output: outputFor(command), tone: toneFor(command), detail: detailFor(command) }
+        : { command, output: `zsh: command not found: ${command}`, tone: 'error' };
+      return { ...w, lines: [...w.lines, newLine], input: '' };
+    }));
   }
   function submit(event: SyntheticEvent<HTMLFormElement>) { event.preventDefault(); run(input); }
   function browseHistory(event: KeyboardEvent<HTMLInputElement>) {
@@ -182,14 +209,28 @@ export function PortfolioTerminal() {
         <button type="button" className="cli-close" aria-label="Close window" onClick={() => closeWindow(w.id)}>✕</button>
       </header>
       <div className="cli-body">
-        {w.lines.length === 0
+        {w.lines.length === 0 && w.command !== 'terminal'
           ? <p className="response muted">cleared</p>
-          : w.lines.map((line, i) => <div className="cli-line" key={i}>
+          : <>{w.lines.map((line, i) => <div className="cli-line" key={i}>
               <p><span className="prompt">nook@dev</span><span className="path">:~$</span> {line.command}</p>
               {line.github
                 ? <GithubPanel />
                 : <div>{line.output && <p className={line.tone ? `response ${line.tone}` : 'response'}>{line.output}</p>}{line.detail && <ShowMore detail={line.detail} />}</div>}
             </div>)}
+            {w.command === 'terminal' && (
+              <form className="command-line" onSubmit={(event) => { event.preventDefault(); runInWindow(w.id, w.input ?? ''); }}>
+                <span className="prompt">nook@dev</span><span className="path">:~$</span>
+                <span className="cmd-host">
+                  <span className="cmd-text">{w.input ?? ''}</span><span className="block-cursor" aria-hidden="true" />
+                  <input
+                    value={w.input ?? ''}
+                    onChange={(event) => setWindows((items) => items.map((x) => (x.id === w.id ? { ...x, input: event.target.value } : x)))}
+                    autoFocus autoComplete="off" spellCheck={false} aria-label="Enter a terminal command"
+                  />
+                </span>
+              </form>
+            )}
+          </>}
       </div>
     </div>)}
   </>;
