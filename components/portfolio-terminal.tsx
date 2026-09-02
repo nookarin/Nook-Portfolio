@@ -2,8 +2,10 @@
 
 import { KeyboardEvent, MouseEvent, SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { GithubPanel } from './github-panel';
+import { SudokuGame } from './sudoku-game';
+import { MidiPlayer } from './midi-player';
 type Line = { command?: string; output: string; tone?: 'accent' | 'error' | 'muted'; github?: boolean; detail?: string };
-type CliWindow = { id: number; x: number; y: number; command?: string; lines: Line[]; input?: string };
+type CliWindow = { id: number; x: number; y: number; command?: string; lines: Line[]; input?: string; sudoku?: boolean; midi?: boolean; minimized?: boolean; resized?: boolean };
 const COMMANDS = ['about', 'skills', 'work', 'contact', 'status', 'github', 'date', 'clear'];
 const responses: Record<string, string> = {
   about: 'Early-career full-stack developer building clear, resilient digital products from Thailand — experienced in operations, data management, and market research.',
@@ -35,6 +37,23 @@ function ShowMore({ detail }: { detail: string }) {
   );
 }
 
+function WindowControls({ onMinimize, onMaximize, onClose }: { onMinimize: () => void; onMaximize: () => void; onClose: () => void }) {
+  const stop = (e: MouseEvent) => e.stopPropagation();
+  return (
+    <div className="kde-controls">
+      <button type="button" className="kde-btn kde-btn-min" aria-label="Minimize" onMouseDown={stop} onClick={(e) => { e.stopPropagation(); onMinimize(); }}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" /></svg>
+      </button>
+      <button type="button" className="kde-btn kde-btn-max" aria-label="Maximize" onMouseDown={stop} onClick={(e) => { e.stopPropagation(); onMaximize(); }}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" /></svg>
+      </button>
+      <button type="button" className="kde-btn kde-btn-close" aria-label="Close" onMouseDown={stop} onClick={(e) => { e.stopPropagation(); onClose(); }}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+      </button>
+    </div>
+  );
+}
+
 let nextId = 1;
 
 export function PortfolioTerminal() {
@@ -46,6 +65,7 @@ export function PortfolioTerminal() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showPic, setShowPic] = useState(false);
   const [resized, setResized] = useState(false);
+  const [mainMinimized, setMainMinimized] = useState(false);
   const mainDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -60,6 +80,23 @@ export function PortfolioTerminal() {
     };
     window.addEventListener('terminal:open', handler);
     return () => window.removeEventListener('terminal:open', handler);
+  }, []);
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('desktop:windows', {
+      detail: [
+        { id: 0, title: 'Terminal — zsh', minimized: mainMinimized },
+        ...windows.map((w) => ({ id: w.id, title: w.command ? `nook@portfolio — ${w.command}` : 'nook@portfolio', minimized: !!w.minimized })),
+      ],
+    }));
+  }, [windows, mainMinimized]);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent).detail;
+      if (id === 0) setMainMinimized((m) => !m);
+      else setWindows((items) => items.map((w) => (w.id === id ? { ...w, minimized: !w.minimized } : w)));
+    };
+    window.addEventListener('terminal:toggle-min', handler);
+    return () => window.removeEventListener('terminal:toggle-min', handler);
   }, []);
 
   function mainDragStart(e: MouseEvent) {
@@ -84,11 +121,11 @@ export function PortfolioTerminal() {
     const d = detailFor(command);
     const lines: Line[] = command === 'github'
       ? [{ command: raw ?? command, output: '', github: true }]
-      : command === 'terminal'
+      : command === 'terminal' || command === 'sudoku' || command === 'midi'
         ? []
         : [{ command: raw ?? command, output: outputFor(command), tone: toneFor(command), detail: d }];
     const id = nextId++;
-    const w = Math.min(460, window.innerWidth - 40);
+    const w = command === 'sudoku' || command === 'midi' ? Math.min(380, window.innerWidth - 40) : Math.min(460, window.innerWidth - 40);
     setWindows((items) => [...items, {
       id,
       x: Math.min(Math.max(30, window.innerWidth / 2 - w / 2 + (items.length % 4) * 26), window.innerWidth - w - 20),
@@ -96,6 +133,8 @@ export function PortfolioTerminal() {
       command,
       lines,
       input: command === 'terminal' ? '' : undefined,
+      sudoku: command === 'sudoku',
+      midi: command === 'midi',
     }]);
   }
   function closeWindow(id: number) { setWindows((items) => items.filter((w) => w.id !== id)); }
@@ -159,8 +198,12 @@ export function PortfolioTerminal() {
   }
 
   return <>
-    <section className={`terminal-window${resized ? ' resized' : ''}`} aria-label="Interactive portfolio terminal" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
-      <header className="terminal-titlebar" onMouseDown={mainDragStart}><button type="button" className="win-resize" aria-label="Toggle window size" onClick={(e) => { e.stopPropagation(); setResized((r) => !r); }} /><span>nook@portfolio — zsh</span><span className="window-state" aria-hidden="true">⌘</span></header>
+    <section className={`terminal-window${resized ? ' resized' : ''}${mainMinimized ? ' minimized' : ''}`} aria-label="Interactive portfolio terminal" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
+      <header className="terminal-titlebar" onMouseDown={mainDragStart}>
+        <span className="terminal-title-left" aria-hidden="true" />
+        <span className="terminal-title-text">nook@portfolio — zsh</span>
+        <WindowControls onMinimize={() => setMainMinimized(true)} onMaximize={() => setResized((r) => !r)} onClose={() => setMainMinimized(true)} />
+      </header>
       <div className="terminal-output" ref={outputRef} onClick={() => inputRef.current?.focus()}>
         <div className="intro-pic-bar">
           <button type="button" className="pic-toggle" onClick={() => setShowPic((s) => !s)} aria-expanded={showPic}>{showPic ? 'Hide photo' : 'Show photo'}</button>
@@ -203,15 +246,23 @@ export function PortfolioTerminal() {
       </div>
       <footer className="terminal-statusbar"><span>● ONLINE</span><span>UTF-8</span></footer>
     </section>
-    {windows.map((w) => <div key={w.id} className="cli-window" style={{ width: 'min(460px, calc(100vw - 40px))', left: w.x, top: w.y }}>
+    {windows.map((w) => <div key={w.id} className={`cli-window${w.minimized ? ' minimized' : ''}`} style={{ width: w.sudoku || w.midi ? (w.resized ? 'min(760px,94vw)' : 'min(380px, calc(100vw - 40px))') : (w.resized ? 'min(860px,94vw)' : 'min(460px, calc(100vw - 40px))'), height: w.resized ? 'min(680px,88vh)' : undefined, left: w.x, top: w.y }}>
       <header className="cli-titlebar" onMouseDown={(e) => dragWindowStart(e, w.id, w.x, w.y)}>
         <span className="cli-title">{w.command ? `nook@portfolio: ~ — ${w.command}` : 'nook@portfolio: ~'}</span>
-        <button type="button" className="cli-close" aria-label="Close window" onClick={() => closeWindow(w.id)}>✕</button>
+        <WindowControls
+          onMinimize={() => setWindows((items) => items.map((x) => (x.id === w.id ? { ...x, minimized: !x.minimized } : x)))}
+          onMaximize={() => setWindows((items) => items.map((x) => (x.id === w.id ? { ...x, resized: !x.resized } : x)))}
+          onClose={() => closeWindow(w.id)}
+        />
       </header>
       <div className="cli-body">
-        {w.lines.length === 0 && w.command !== 'terminal'
-          ? <p className="response muted">cleared</p>
-          : <>{w.lines.map((line, i) => <div className="cli-line" key={i}>
+        {w.sudoku
+          ? <SudokuGame />
+          : w.midi
+            ? <MidiPlayer />
+            : w.lines.length === 0 && w.command !== 'terminal'
+            ? <p className="response muted">cleared</p>
+            : <>{w.lines.map((line, i) => <div className="cli-line" key={i}>
               <p><span className="prompt">nook@dev</span><span className="path">:~$</span> {line.command}</p>
               {line.github
                 ? <GithubPanel />

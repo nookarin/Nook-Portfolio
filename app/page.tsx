@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react';
 import { PortfolioTerminal } from '@/components/portfolio-terminal';
+import { KdePanel } from '@/components/kde-panel';
+import { DigitalClock } from '@/components/digital-clock';
 
 const WALLPAPERS = ['bg1', 'bg2', 'bg3', 'bg4', 'bg5'];
 const ACCENTS: Record<string, string> = {
@@ -21,6 +23,8 @@ export default function Home() {
     <main className="desktop" style={{ backgroundImage: `url("/${wallpaper}.jpg")`, ['--accent' as string]: ACCENTS[wallpaper] }}>
       <div className="wallpaper-grain" aria-hidden="true" />
       <PortfolioTerminal />
+      <KdePanel />
+      <DigitalClock />
 
       <div className="desktop-icons">
         <button type="button" className="desktop-icon" onClick={() => window.dispatchEvent(new CustomEvent('terminal:open', { detail: 'terminal' }))}>
@@ -30,6 +34,14 @@ export default function Home() {
         <button type="button" className="desktop-icon" onClick={() => window.dispatchEvent(new CustomEvent('terminal:open', { detail: 'contact' }))}>
           <span className="desktop-icon-img">✉</span>
           <span className="desktop-icon-label">Hire Me</span>
+        </button>
+        <button type="button" className="desktop-icon" onClick={() => window.dispatchEvent(new CustomEvent('terminal:open', { detail: 'sudoku' }))}>
+          <span className="desktop-icon-img">▦</span>
+          <span className="desktop-icon-label">Sudoku</span>
+        </button>
+        <button type="button" className="desktop-icon" onClick={() => window.dispatchEvent(new CustomEvent('terminal:open', { detail: 'midi' }))}>
+          <span className="desktop-icon-img">♪</span>
+          <span className="desktop-icon-label">MIDI</span>
         </button>
       </div>
 
