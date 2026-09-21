@@ -8,16 +8,16 @@ type Line = { command?: string; output: string; tone?: 'accent' | 'error' | 'mut
 type CliWindow = { id: number; x: number; y: number; command?: string; lines: Line[]; input?: string; sudoku?: boolean; midi?: boolean; minimized?: boolean; resized?: boolean };
 const COMMANDS = ['about', 'skills', 'work', 'contact', 'status', 'github', 'date', 'clear'];
 const responses: Record<string, string> = {
-  about: 'Early-career full-stack developer building clear, resilient digital products from Thailand — experienced in operations, data management, and market research.',
-  skills: 'JavaScript  React  Node.js  Express  PostgreSQL  SQL  MongoDB  Git',
-  work: '01 VinylVault  /  02 SteamRec  /  03 Uma Clicker',
-  contact: 'arin.nky@outlook.com  ·  061-491-7664  ·  Pathum Thani, Thailand\nlinkedin.com/in/arinchai-charoenrak-08370941a  ·  github.com/nookarin',
+  about: 'Aspiring full-stack developer interested in cloud and DevOps, building practical web apps across frontend and backend with hands-on CI/CD, containerization, and monitoring experience.',
+  skills: 'JavaScript  React.js  Node.js  Express.js  PostgreSQL  MongoDB  Git  C#  Python  Docker  Kubernetes  CI/CD  HTML  CSS',
+  work: '01 Portask  /  02 GearVerse  /  03 VinylVault',
+  contact: 'arin.nky@outlook.com  ·  061-491-7664  ·  Pathum Thani, Thailand 12130\nlinkedin.com/in/arinchai-charoenrak-08370941a  ·  github.com/nookarin',
   status: '● open to new opportunities',
 };
 const details: Record<string, string> = {
-  about: 'EDUCATION\n· Thammasat University (BEC Program) — Bachelor of Liberal Arts (2019–2023)\n· Harrisburg High School, Arkansas, US — Exchange Student (2017–2018)\n\nPROFESSIONAL DEVELOPMENT\n· Generation — Junior Software Developer Program (2026)\n  MERN-stack training: React, Node.js, Express, PostgreSQL, SQL, MongoDB, Git.',
-  skills: 'ADMINISTRATIVE & OPERATIONS\nAdministrative Support · Data Management · Spreadsheet Management · Document & Record Management · Business Operations · Team Coordination\n\nCUSTOMER & COMMUNICATION\nCustomer Service · Customer Support · Professional Communication · Inquiry Handling · Cross-Team Collaboration · Issue Escalation\n\nANALYSIS & COMPLIANCE\nContent Review & Moderation · Trend & Pattern Identification · Case Investigation · Policy Compliance · Data Privacy & Confidentiality · Attention to Detail\n\nTECHNICAL\nJavaScript · React.js · Node.js · Express.js · HTML5 · CSS3 · PostgreSQL · SQL · MongoDB · Git · GitHub · APIs · npm',
-  work: 'PROFESSIONAL EXPERIENCE\n· TDCX — Support Specialist (2025–2026)\n  Reviewed reported content, handled inquiries, investigated trends, escalated complex cases, and applied strict privacy & security standards.\n\n· Touch Innovative Research and Technology — Administrator (2024)\n  Managed documentation, coordination, customer data in spreadsheets, and marketing research.\n\n· Smartwise — Assistant Hotel Manager (2023)\n  Coordinated with the team and attended business meetings.\n\n· Thai-Star Food and Beverage — Intern (2022)\n  Coordinated with the team to finish workplace tasks.\n\nPROJECTS\n· VinylVault — Discogs-inspired music database & marketplace\n· SteamRec — Steam Web API app for library + recommendations\n· Uma Clicker — idle/clicker game',
+  about: 'EDUCATION\n· Thammasat University (BEC Program) — Bachelor of Liberal Arts (2019–2023)\n· Harrisburg High School, Arkansas, US — Exchange Student (2017–2018)\n\nPROFESSIONAL DEVELOPMENT\n· Generation — Junior Software Developer Program (2026)\n  Completed intensive training in full-stack web development using the MERN stack.\n  Database design and development with PostgreSQL and MongoDB.\n  Built projects with REST APIs and Git/GitHub in a collaborative workflow.\n  Applied problem-solving, debugging, version control, and team collaboration.',
+  skills: 'TECHNICAL\nJavaScript · React.js · Node.js · Express.js · PostgreSQL · MongoDB · Git · C# · Python · Docker · Kubernetes · CI/CD · HTML · CSS\n\nCLOUD & DEVOPS\nDocker · Kubernetes · CI/CD · Deployments (Render, Vercel)\n\nLANGUAGES\nThai — Native · English — C2 (Proficient)',
+  work: 'PROFESSIONAL EXPERIENCE\n· TDCX — Support Specialist (2025–2026)\n  Reviewed reported content and handled inquiries through client-provided platforms, applying strict privacy, confidentiality, and security standards.\n\n· Touch Innovative Research and Technology — Administrator (2024)\n  Supported business operations by managing information and documentation.\n\n· Smartwise — Assistant Hotel Manager (2023)\n  Coordinated with the team in property management, managing transaction history and customer data in spreadsheets.\n\n· Thai-Star Food and Beverage — Intern (2022)\n  Coordinated with the team to finish workplace tasks.\n\nPROJECTS\n· Portask — B2B portal where agency teams manage project updates and clients track progress, provide feedback, and approve deliverables.\n· GearVerse — Group e-commerce site built with React/Express/MongoDB, deployed to Render (API) and Vercel (frontend).\n· VinylVault — Discogs-inspired music database & marketplace.',
 };
 const detailFor = (command: string) => details[command];
 const dateNow = () => new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
@@ -215,11 +215,12 @@ export function PortfolioTerminal() {
             <p className="intro-title">Full-Stack Developer</p>
             <ul>
               <li><span>location</span> Pathum Thani, Thailand</li>
-              <li><span>stack</span> React · Node.js · Express · PostgreSQL</li>
+              <li><span>stack</span> React · Node.js · Express · PostgreSQL · Docker</li>
               <li><span>email</span> arin.nky@outlook.com</li>
               <li><span>phone</span> 061-491-7664</li>
             </ul>
             <div className="connect-row">
+              <a className="connect-btn" href="/cv2.pdf" download>Download CV ›</a>
               <button type="button" className="connect-btn" onClick={() => window.open('https://github.com/nookarin', '_blank', 'noopener')}>GitHub ›</button>
               <button type="button" className="connect-btn" onClick={() => window.open('https://www.linkedin.com/in/arinchai-charoenrak-08370941a', '_blank', 'noopener')}>LinkedIn ›</button>
             </div>

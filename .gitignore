@@ -36,3 +36,7 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+/assets/cv.pdf
+/assets/resume.pdf
+/assets/cv2.pdf

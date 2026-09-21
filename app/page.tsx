@@ -39,10 +39,7 @@ export default function Home() {
           <span className="desktop-icon-img">▦</span>
           <span className="desktop-icon-label">Sudoku</span>
         </button>
-        <button type="button" className="desktop-icon" onClick={() => window.dispatchEvent(new CustomEvent('terminal:open', { detail: 'midi' }))}>
-          <span className="desktop-icon-img">♪</span>
-          <span className="desktop-icon-label">MIDI</span>
-        </button>
+
       </div>
 
       <div className="wp-picker-wrap" ref={wpRef}>
