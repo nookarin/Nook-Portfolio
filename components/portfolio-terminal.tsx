@@ -215,7 +215,7 @@ export function PortfolioTerminal() {
             <p className="intro-title">Full-Stack Developer</p>
             <ul>
               <li><span>location</span> Pathum Thani, Thailand</li>
-              <li><span>stack</span> React · Node.js · Express · PostgreSQL · Docker</li>
+              <li><span>stack</span> React · Node.js · Express · MongoDB · Docker</li>
               <li><span>email</span> arin.nky@outlook.com</li>
               <li><span>phone</span> 061-491-7664</li>
             </ul>
