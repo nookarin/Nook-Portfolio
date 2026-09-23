@@ -220,7 +220,7 @@ export function PortfolioTerminal() {
               <li><span>phone</span> 061-491-7664</li>
             </ul>
             <div className="connect-row">
-              <a className="connect-btn" href="/cv2.pdf" download>Download CV ›</a>
+              <a className="connect-btn" href="/nookarin-cv.pdf" download>Download CV ›</a>
               <button type="button" className="connect-btn" onClick={() => window.open('https://github.com/nookarin', '_blank', 'noopener')}>GitHub ›</button>
               <button type="button" className="connect-btn" onClick={() => window.open('https://www.linkedin.com/in/arinchai-charoenrak-08370941a', '_blank', 'noopener')}>LinkedIn ›</button>
             </div>
